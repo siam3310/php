@@ -136,6 +136,11 @@ if (!empty($ct) && stripos($ct, "mpegurl") !== false) $is_m3u8 = true;
 if (strpos($body, "#EXTM3U") !== false) $is_m3u8 = true;
 
 if ($is_m3u8) {
+    $proxy_scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+    $proxy_host = $_SERVER['HTTP_HOST'];
+    $proxy_path = $_SERVER['SCRIPT_NAME'];
+    $proxy_url = $proxy_scheme . '://' . $proxy_host . $proxy_path;
+
     $base = get_base($url);
     $lines = preg_split("/\r\n|\n|\r/", $body);
     $out = [];
@@ -153,7 +158,7 @@ if ($is_m3u8) {
             if (stripos($t, "#EXT-X-KEY") === 0 && preg_match('/URI="([^"]+)"/', $t, $m)) {
                 $key = $m[1];
                 $absKey = to_abs($base, $key);
-                $proxyKey = "?url=" . b64_to_hex(base64_encode($absKey));
+                $proxyKey = $proxy_url . "?url=" . b64_to_hex(base64_encode($absKey));
                 if (!empty($referer)) {
                     $proxyKey .= '&referer=' . urlencode($referer);
                 }
@@ -165,7 +170,7 @@ if ($is_m3u8) {
         }
 
         $abs = to_abs($base, $t);
-        $out[] = "?url=" . b64_to_hex(base64_encode($abs)) . (!empty($referer) ? '&referer=' . urlencode($referer) : '');
+        $out[] = $proxy_url . "?url=" . b64_to_hex(base64_encode($abs)) . (!empty($referer) ? '&referer=' . urlencode($referer) : '');
     }
 
     header("Content-Type: application/vnd.apple.mpegurl");
